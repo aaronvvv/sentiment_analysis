@@ -21,14 +21,12 @@ class FGM:
                     param.stop_gradient =True
                     param.add_(r_at)
                     param.stop_gradient = False
-                    #param[:] = param.add(r_at)
-                    #param.add_(r_at)
 
     def restore(self, emb_name='word_embeddings'):
         for name, para in self.model.named_parameters():
             if not para.stop_gradient and emb_name in name:
                 assert name in self.backup
-                para[:] = self.backup[name]#有问题
+                para[:] = self.backup[name]#有问题，没有找到对应pytorch的para.data接口
         del self.backup
         self.backup = {}
         gc.collect()
