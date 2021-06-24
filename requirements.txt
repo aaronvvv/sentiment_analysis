@@ -1,0 +1,2 @@
+paddlepaddle-gpu 2.1.0
+paddlenlp 2.0.3
