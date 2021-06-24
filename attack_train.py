@@ -18,15 +18,13 @@ class FGM:
                 norm = paddle.norm(param.grad)
                 if norm and not paddle.isnan(norm):
                     r_at = self.eps * param.grad / norm
-                    param.stop_gradient =True
-                    param.add_(r_at)
-                    param.stop_gradient = False
+                    param.set_value(param + r_at)
 
     def restore(self, emb_name='word_embeddings'):
         for name, para in self.model.named_parameters():
             if not para.stop_gradient and emb_name in name:
                 assert name in self.backup
-                para[:] = self.backup[name]#有问题，没有找到对应pytorch的para.data接口
+                para.set_value(self.backup[name])
         del self.backup
         self.backup = {}
         gc.collect()
@@ -52,14 +50,14 @@ class PGD:
                 norm = paddle.norm(param.grad)
                 if norm != 0 and not paddle.isnan(norm):
                     r_at = self.alpha * param.grad / norm
-                    param.data.add_(r_at)
-                    param.data = self.project(name, param.data)
+                    param.set_value(param + r_at)
+                    param.set_value(self.project(name, param.data))
 
     def restore(self, emb_name='word_embeddings'):
         for name, param in self.model.named_parameters():
             if not param.stop_gradient and emb_name in name:
                 assert name in self.emb_backup
-                param.data = self.emb_backup[name]
+                param.set_value(self.emb_backup[name])
         del self.backup
         self.emb_backup = {}
 
