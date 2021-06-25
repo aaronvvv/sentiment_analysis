@@ -242,7 +242,7 @@ def run_cv(train_ds,rank, fold_index, nfold=3, data_test=None,random_state=args.
                     tic_train = time.time()
                 loss.backward()
 
-                #attack(att_fun,model,batch,use_n_gpus=True)
+                attack(att_fun, model, optimizer, batch, use_n_gpus=True)
 
                 optimizer.step()
                 optimizer.clear_grad()
