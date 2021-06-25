@@ -18,7 +18,9 @@ class FGM:
                 norm = paddle.norm(param.grad)
                 if norm and not paddle.isnan(norm):
                     r_at = self.eps * param.grad / norm
-                    param.set_value(param + r_at)
+                    param.stop_gradient =True
+                    param.add_(r_at)
+                    param.stop_gradient = False
 
     def restore(self, emb_name='word_embeddings'):
         for name, para in self.model.named_parameters():
@@ -46,12 +48,14 @@ class PGD:
         for name, param in self.model.named_parameters():
             if not param.stop_gradient and emb_name in name:
                 if is_first_attack:
-                    self.emb_backup[name] = param.data.clone()
+                    self.emb_backup[name] = param.clone()
                 norm = paddle.norm(param.grad)
                 if norm != 0 and not paddle.isnan(norm):
                     r_at = self.alpha * param.grad / norm
-                    param.set_value(param + r_at)
-                    param.set_value(self.project(name, param.data))
+                    param.stop_gradient = True
+                    param.add_(r_at)
+                    param.stop_gradient = False
+                    param.set_value(self.project(name, param))
 
     def restore(self, emb_name='word_embeddings'):
         for name, param in self.model.named_parameters():
@@ -60,6 +64,7 @@ class PGD:
                 param.set_value(self.emb_backup[name])
         del self.backup
         self.emb_backup = {}
+        gc.collect()
 
     def project(self, param_name, param_data):
         r = param_data - self.emb_backup[param_name]
@@ -75,11 +80,11 @@ class PGD:
     def restore_grad(self):
         for name, param in self.model.named_parameters():
             if not param.stop_gradient and param.grad is not None:
-                param.grad = self.grad_backup[name]
+                param.grad.set_value(self.grad_backup[name])
 
 cross_loss = paddle.nn.loss.CrossEntropyLoss()
 
-def attack(fun,model,batch_data,use_n_gpus=True):
+def attack(fun,model,opt,batch_data,use_n_gpus=True):
     input_ids, token_type_ids, labels = batch_data
     if fun.name == "fgm":
         fun.attack()
@@ -100,7 +105,7 @@ def attack(fun,model,batch_data,use_n_gpus=True):
             fun.attack(is_first_attack=(_t == 0))
 
             if _t != pgd_k - 1:
-                model.zero_grad()
+                opt.clear_grad()
             else:
                 fun.restore_grad()
  
