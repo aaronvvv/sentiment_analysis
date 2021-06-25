@@ -30,7 +30,7 @@ def merge_res(dps,dsname=None):
         max_len_fold = None
 
         for i, p in enumerate(rows_pred):
-            if p == "nan" or len(p)<=1:continue
+            if dsname[:4]=="COTE" and (p == "nan" or len(p)<=1):continue
             vote[p] += 1
             if vote[p]>best_cnt:
                 best_cnt = vote[p]
